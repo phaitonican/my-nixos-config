@@ -10,9 +10,9 @@
       ./hardware-configuration.nix
     ];
 
-  # React native expo go ports
-  networking.firewall.allowedTCPPorts = [ 8081 ];
-  networking.firewall.allowedUDPPorts = [ 8081 ];
+  # game server ports
+  #networking.firewall.allowedTCPPorts = [ 27016 ];
+  #networking.firewall.allowedUDPPorts = [ 27016 ];
 
   # cosmic shutdown fix
   services.geoclue2.enable = true;
@@ -28,22 +28,59 @@
 
   # SWAP DISABLE
   #swapDevices = lib.mkForce [ ];
+  
+  # cosmic stuff
   services.desktopManager.cosmic.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
+
+  # gnome stuff
+  # services.xserver = {
+  #   enable = true;
+  #   displayManager.gdm.enable = true;
+  #   #desktopManager.gnome.enable = true;
+  #   desktopManager.gnome = {
+  #     enable = true;
+  #     extraGSettingsOverridePackages = [pkgs.mutter];
+  #     extraGSettingsOverrides = ''
+  #       [org.gnome.mutter]
+  #       experimental-features=['variable-refresh-rate']
+  #       '';
+  #   };
+  #   xkb.layout = "de,de";
+  # };
+
+  # environment.gnome.excludePackages = (with pkgs; [
+  #   atomix # puzzle game
+  #   cheese # webcam tool
+  #   epiphany # web browser
+  #   evince # document viewer
+  #   geary # email reader
+  #   gedit # text editor
+  #   gnome-characters
+  #   gnome-music
+  #   gnome-photos
+  #   gnome-terminal
+  #   gnome-tour
+  #   hitori # sudoku game
+  #   iagno # go game
+  #   tali # poker game
+  #   #totem # video player
+  # ]);
 
   # ENV VARS
   environment.sessionVariables = {
     GDK_BACKEND="wayland";
     QT_QPA_PLATFORM="wayland";
     MOZ_ENABLE_WAYLAND = "1";
-    TERM = "foot";
-    TERMINAL = "foot";
+    #TERM = "wezterm";
+    #TERMINAL = "wezterm";
     BROWSER = "firefox";
     VISUAL = "hx";
     NIXOS_OZONE_WL = "1";
     ELECTRON_OZONE_PLATFORM_HINT = "wayland";
     LIBVA_DRIVER_NAME = "iHD";
     EDITOR = "hx";
+    XCURSOR_THEME="Adwaita";
     COSMIC_DATA_CONTROL_ENABLED = 1;
   };
 	
@@ -54,6 +91,19 @@
     dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
     localNetworkGameTransfers.openFirewall = true; # Open ports in the firewall for Steam Local Network Game Transfers
   };
+
+  # virtualbox
+  virtualisation.virtualbox.host.enable = true;
+  users.extraGroups.vboxusers.members = [ "cenk" ];
+
+  # virt-manager
+  programs.virt-manager.enable = true;
+
+  users.groups.libvirtd.members = ["cenk"];
+
+  virtualisation.libvirtd.enable = true;
+
+  virtualisation.spiceUSBRedirection.enable = true;
 
   # firefox
   programs.firefox.enable = true;
@@ -80,6 +130,7 @@
       "rd.systemd.show_status=false"
       "rd.udev.log_level=3"
       "udev.log_priority=3"
+      "kvm.enable_virt_at_load=0"
       #"i915.force_probe=!56a1"
       #"xe.force_probe=56a1"
     ];
@@ -140,7 +191,7 @@
   users.users.cenk = {
     isNormalUser = true;
     description = "Cenk";
-    extraGroups = [ "networkmanager" "wheel" "mpd" "input" "adbusers" "kvm" "docker" "audio" ];
+    extraGroups = [ "networkmanager" "wheel" "mpd" "input" "adbusers" "docker" "audio" "kvm" ];
   };
   
   # Allow unfree packages
@@ -173,7 +224,8 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    yarn
+    nixfmt-rfc-style
+    #yarn
     parted
     gparted
     wget
@@ -185,7 +237,7 @@
     pipewire
     wireplumber
     fastfetch
-    mpv
+    #mpv
     p7zip
     unrar
     wl-clipboard
@@ -193,26 +245,35 @@
     killall
     unzip
     discord-canary
-    prismlauncher
-    ffmpeg
+    #prismlauncher
+    #ffmpeg
     xarchiver
     obs-studio
-    jdk
+    #jdk
     element-desktop
-    rkdeveloptool
-    qemu
+    #rkdeveloptool
     blender    
     nix-your-shell
     gimp
-    inkscape
+    #inkscape
     nixd
     nil
-    chromium
-    
+    #tor-browser
+    #qemu
+    #tiled
+    #gnome-tweaks
+    #papers
+    #showtime
+    #dconf-editor
+        
     #rust based tools
+    
+    # only relatively cleanly programmed ones
+    fractal
+    mission-center
+    
     zed-editor
     helix
-    fractal
     oculante
     lsd
     rip2
