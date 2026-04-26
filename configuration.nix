@@ -93,8 +93,8 @@
   };
 
   # virtualbox
-  virtualisation.virtualbox.host.enable = true;
-  users.extraGroups.vboxusers.members = [ "cenk" ];
+  #virtualisation.virtualbox.host.enable = true;
+  #users.extraGroups.vboxusers.members = [ "cenk" ];
 
   # virt-manager
   programs.virt-manager.enable = true;
@@ -109,7 +109,7 @@
   programs.firefox.enable = true;
 	
   # adb
-  programs.adb.enable = true;
+  #programs.adb.enable = true;
 
   # Fish Shell
   programs.fish.enable = true;
@@ -119,7 +119,7 @@
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.efi.efiSysMountPoint = "/boot/efi";
+  #boot.loader.efi.efiSysMountPoint = "/boot/efi";
   
   # Silent boot
   boot = { 
@@ -140,7 +140,7 @@
   };  
 
   # host name
-  networking.hostName = "pc"; # Define your hostname.
+  networking.hostName = "nixos"; # Define your hostname.
 
   # Enable networking
   networking.networkmanager.enable = true;
@@ -149,7 +149,25 @@
   time.timeZone = "Europe/Berlin";
 
   # Select internationalisation properties.
-  i18n.defaultLocale = "de_DE.utf8";
+  i18n.defaultLocale = "de_DE.UTF-8";
+
+  i18n.extraLocaleSettings = {
+    LC_ADDRESS = "de_DE.UTF-8";
+    LC_IDENTIFICATION = "de_DE.UTF-8";
+    LC_MEASUREMENT = "de_DE.UTF-8";
+    LC_MONETARY = "de_DE.UTF-8";
+    LC_NAME = "de_DE.UTF-8";
+    LC_NUMERIC = "de_DE.UTF-8";
+    LC_PAPER = "de_DE.UTF-8";
+    LC_TELEPHONE = "de_DE.UTF-8";
+    LC_TIME = "de_DE.UTF-8";
+  };
+
+  # Configure keymap in X11
+  services.xserver.xkb = {
+    layout = "de";
+    variant = "";
+  };
 
   # Configure console keymap
   console.keyMap = "de";
@@ -164,7 +182,7 @@
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk-sans
-    noto-fonts-emoji
+    noto-fonts-color-emoji
     liberation_ttf
     fira-code
     fira-code-symbols
@@ -172,7 +190,7 @@
     proggyfonts
     font-awesome
     meslo-lgs-nf
-    ubuntu_font_family
+    ubuntu-classic
     nerd-fonts.fira-code
     nerd-fonts.droid-sans-mono 
   ];
@@ -224,7 +242,7 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    nixfmt-rfc-style
+    nixfmt
     #yarn
     parted
     gparted
@@ -297,6 +315,6 @@
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "22.11"; # Did you read the comment?
+  system.stateVersion = "25.11"; # Did you read the comment?
 
 }
