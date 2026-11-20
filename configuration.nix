@@ -1,156 +1,70 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
+# NixOS system configuration for host "nixos".
+#
+# Sections:
+#   1. Core system      - Nix, boot, networking, locale, users
+#   2. Desktop          - COSMIC, fonts, audio, session environment
+#   3. Hardware & AI    - Intel graphics, Ollama
+#   4. Programs         - shell, browser, gaming, virtualisation
+#   5. System packages
+#   6. Disabled options - alternatives kept for reference
 
-{ config, pkgs, lib, ... }:
+{ pkgs, lib, ... }:
 
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
+  imports = [ ./hardware-configuration.nix ];
 
-  # game server ports
-  #networking.firewall.allowedTCPPorts = [ 27016 ];
-  #networking.firewall.allowedUDPPorts = [ 27016 ];
+  # ------------------------------------------------------------------
+  # 1. Core system
+  # ------------------------------------------------------------------
 
-  # cosmic shutdown fix
-  services.geoclue2.enable = true;
+  # Nix
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
+  nixpkgs.config.allowUnfree = true;
 
-  # Experimental features
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-	
-  # SWAP
-  swapDevices = [ {
-    device = "/var/lib/swapfile";
-    size = 16*1024;
-  } ];
+  # Run unpatched dynamically linked binaries (AppImages, downloaded tools).
+  programs.nix-ld.enable = true;
 
-  # SWAP DISABLE
-  #swapDevices = lib.mkForce [ ];
-  
-  # cosmic stuff
-  services.desktopManager.cosmic.enable = true;
-  services.displayManager.cosmic-greeter.enable = true;
+  # Memory-safe sudo implementation (replaces the default sudo).
+  security.sudo-rs.enable = true;
 
-  # gnome stuff
-  # services.xserver = {
-  #   enable = true;
-  #   displayManager.gdm.enable = true;
-  #   #desktopManager.gnome.enable = true;
-  #   desktopManager.gnome = {
-  #     enable = true;
-  #     extraGSettingsOverridePackages = [pkgs.mutter];
-  #     extraGSettingsOverrides = ''
-  #       [org.gnome.mutter]
-  #       experimental-features=['variable-refresh-rate']
-  #       '';
-  #   };
-  #   xkb.layout = "de,de";
-  # };
-
-  # environment.gnome.excludePackages = (with pkgs; [
-  #   atomix # puzzle game
-  #   cheese # webcam tool
-  #   epiphany # web browser
-  #   evince # document viewer
-  #   geary # email reader
-  #   gedit # text editor
-  #   gnome-characters
-  #   gnome-music
-  #   gnome-photos
-  #   gnome-terminal
-  #   gnome-tour
-  #   hitori # sudoku game
-  #   iagno # go game
-  #   tali # poker game
-  #   #totem # video player
-  # ]);
-
-  # ENV VARS
-  environment.sessionVariables = {
-    GDK_BACKEND="wayland";
-    QT_QPA_PLATFORM="wayland";
-    MOZ_ENABLE_WAYLAND = "1";
-    #TERM = "wezterm";
-    #TERMINAL = "wezterm";
-    BROWSER = "firefox";
-    VISUAL = "hx";
-    NIXOS_OZONE_WL = "1";
-    ELECTRON_OZONE_PLATFORM_HINT = "wayland";
-    LIBVA_DRIVER_NAME = "iHD";
-    EDITOR = "hx";
-    XCURSOR_THEME="Adwaita";
-    COSMIC_DATA_CONTROL_ENABLED = 1;
-  };
-	
-  # steam
-  programs.steam = {
-    enable = true;
-    remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
-    dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
-    localNetworkGameTransfers.openFirewall = true; # Open ports in the firewall for Steam Local Network Game Transfers
-  };
-
-  # virtualbox
-  #virtualisation.virtualbox.host.enable = true;
-  #users.extraGroups.vboxusers.members = [ "cenk" ];
-
-  # virt-manager
-  programs.virt-manager.enable = true;
-
-  users.groups.libvirtd.members = ["cenk"];
-
-  virtualisation.libvirtd.enable = true;
-
-  virtualisation.spiceUSBRedirection.enable = true;
-
-  # firefox
-  programs.firefox.enable = true;
-	
-  # adb
-  #programs.adb.enable = true;
-
-  # Fish Shell
-  programs.fish.enable = true;
-  users.defaultUserShell = pkgs.fish;
-  environment.shells = with pkgs; [ fish ];
-
-  # Bootloader.
+  # Boot
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  #boot.loader.efi.efiSysMountPoint = "/boot/efi";
-  
-  # Silent boot
-  boot = { 
-    kernelParams = [
-      "quiet"
-      "splash"
-      "vga=current"
-      "rd.systemd.show_status=false"
-      "rd.udev.log_level=3"
-      "udev.log_priority=3"
-      "kvm.enable_virt_at_load=0"
-      #"i915.force_probe=!56a1"
-      #"xe.force_probe=56a1"
-    ];
-    consoleLogLevel = 0;
-    # https://github.com/NixOS/nixpkgs/pull/108294
-    initrd.verbose = false;
-  };  
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.consoleLogLevel = 0;
+  boot.kernelParams = [
+    "quiet"
+    "splash"
+    "vga=current"
+    "rd.systemd.show_status=false"
+    "rd.udev.log_level=3"
+    "udev.log_priority=3"
+    "kvm.enable_virt_at_load=0"
+    "i915.enable_guc=3"
+    # "i915.force_probe=!56a1"
+    # "xe.force_probe=56a1"
+  ];
 
-  # host name
-  networking.hostName = "nixos"; # Define your hostname.
+  # 16 GiB swap file.
+  swapDevices = [
+    {
+      device = "/var/lib/swapfile";
+      size = 16 * 1024;
+    }
+  ];
 
-  # Enable networking
+  # Networking
+  networking.hostName = "nixos";
   networking.networkmanager.enable = true;
+  networking.firewall.allowedTCPPorts = [ 8081 ];
 
-  # Set your time zone.
+  # Time and locale
   time.timeZone = "Europe/Berlin";
-
-  # Select internationalisation properties.
+  time.hardwareClockInLocalTime = true; # dual-boot with Windows
   i18n.defaultLocale = "de_DE.UTF-8";
-
   i18n.extraLocaleSettings = {
     LC_ADDRESS = "de_DE.UTF-8";
     LC_IDENTIFICATION = "de_DE.UTF-8";
@@ -163,20 +77,62 @@
     LC_TIME = "de_DE.UTF-8";
   };
 
-  # Configure keymap in X11
+  # Keyboard
+  console.keyMap = "de";
   services.xserver.xkb = {
     layout = "de";
     variant = "";
   };
 
-  # Configure console keymap
-  console.keyMap = "de";
+  # Users
+  users.users.cenk = {
+    isNormalUser = true;
+    description = "Cenk";
+    extraGroups = [
+      "networkmanager"
+      "wheel"
+      "audio"
+      "input"
+      "kvm"
+      "docker"
+      "mpd"
+      "adbusers"
+    ];
+  };
 
-  # Enable CUPS to print documents.
+  # Printing
   services.printing.enable = true;
 
-  # starship
-  programs.starship.enable = true;
+  # ------------------------------------------------------------------
+  # 2. Desktop
+  # ------------------------------------------------------------------
+
+  # COSMIC desktop
+  services.desktopManager.cosmic.enable = true;
+  services.displayManager.cosmic-greeter.enable = true;
+  services.geoclue2.enable = true; # fixes COSMIC shutdown
+
+  # Session-wide environment variables, Wayland first.
+  environment.sessionVariables = {
+    GDK_BACKEND = "wayland";
+    QT_QPA_PLATFORM = "wayland";
+    MOZ_ENABLE_WAYLAND = "1";
+    NIXOS_OZONE_WL = "1";
+    ELECTRON_OZONE_PLATFORM_HINT = "auto";
+
+    # Default applications
+    BROWSER = "firefox";
+    EDITOR = "hx";
+    VISUAL = "hx";
+
+    # Intel media / Level Zero
+    LIBVA_DRIVER_NAME = "iHD";
+    ZET_ENABLE_PROGRAM_DEBUGGING = "0";
+
+    # COSMIC
+    XCURSOR_THEME = "Adwaita";
+    COSMIC_DATA_CONTROL_ENABLED = "1";
+  };
 
   # Fonts
   fonts.packages = with pkgs; [
@@ -192,10 +148,10 @@
     meslo-lgs-nf
     ubuntu-classic
     nerd-fonts.fira-code
-    nerd-fonts.droid-sans-mono 
+    nerd-fonts.droid-sans-mono
   ];
 
-  # Enable sound with pipewire.
+  # Audio (PipeWire)
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
   services.pipewire = {
@@ -205,116 +161,183 @@
     pulse.enable = true;
   };
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.cenk = {
-    isNormalUser = true;
-    description = "Cenk";
-    extraGroups = [ "networkmanager" "wheel" "mpd" "input" "adbusers" "docker" "audio" "kvm" ];
+  # ------------------------------------------------------------------
+  # 3. Hardware & AI
+  # ------------------------------------------------------------------
+
+  # Intel graphics: VA-API, OpenCL, Level Zero and Vulkan.
+  # Mesa is already provided by hardware.graphics; listing mesa (or the
+  # deprecated mesa.drivers) in extraPackages is redundant.
+  hardware.graphics = {
+    enable = true;
+    extraPackages = with pkgs; [
+      intel-compute-runtime
+      intel-media-driver
+      vpl-gpu-rt
+      libvdpau-va-gl
+      vulkan-loader
+      vulkan-validation-layers
+    ];
   };
-  
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
 
-  # Latest Kernel
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # Ollama with Vulkan acceleration.
+  services.ollama = {
+    enable = true;
+    package = pkgs.ollama-vulkan;
+    environmentVariables = {
+      # Make the system graphics drivers visible to Ollama.
+      LD_LIBRARY_PATH = "/run/opengl-driver/lib";
+      # Force the Vulkan backend.
+      OLLAMA_LLM_LIBRARY = "vulkan";
+    };
+  };
 
-  # enable GameMode
+  # ------------------------------------------------------------------
+  # 4. Programs
+  # ------------------------------------------------------------------
+
+  # Shell
+  programs.fish.enable = true;
+  users.defaultUserShell = pkgs.fish;
+  environment.shells = with pkgs; [ fish ];
+  programs.starship.enable = true;
+
+  # Browser
+  programs.firefox.enable = true;
+
+  # Gaming
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+    localNetworkGameTransfers.openFirewall = true;
+  };
   programs.gamemode.enable = true;
-
-  # enable Gamescope
   programs.gamescope.enable = true;
-	
-  # intel graphics stuff (accel...)
-  nixpkgs.config.packageOverrides = pkgs: {
-    intel-vaapi-driver = pkgs.intel-vaapi-driver.override { enableHybridCodec = true; };
-  };
-	
-  hardware.graphics.extraPackages = with pkgs; [
-    intel-media-driver
-    libvdpau-va-gl
-    vpl-gpu-rt
-    intel-compute-runtime
-  ];
-  
-  # Docker
-  virtualisation.docker.enable = true;
 
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
+  # Virtualisation
+  programs.virt-manager.enable = true;
+  virtualisation.libvirtd.enable = true;
+  virtualisation.spiceUSBRedirection.enable = true;
+  virtualisation.docker.enable = true;
+  users.groups.libvirtd.members = [ "cenk" ];
+
+  # ------------------------------------------------------------------
+  # 5. System packages
+  # ------------------------------------------------------------------
+
   environment.systemPackages = with pkgs; [
-    nixfmt
-    #yarn
+    # CLI and system utilities
+    fastfetch
+    killall
+    lsd
+    fd
+    rip2
+    ouch
+    zoxide
     parted
     gparted
     wget
-    minizip
     git
     git-lfs
-    vulkan-tools
-    vulkan-loader
-    pipewire
-    wireplumber
-    fastfetch
-    #mpv
+    unzip
+    minizip
     p7zip
     unrar
+    xarchiver
     wl-clipboard
     brightnessctl
-    killall
-    unzip
-    discord-canary
-    #prismlauncher
-    #ffmpeg
-    xarchiver
-    obs-studio
-    #jdk
-    element-desktop
-    #rkdeveloptool
-    blender    
+    systeroid
+    intel-gpu-tools
     nix-your-shell
-    gimp
-    #inkscape
+    kondo
+
+    # Editors and development
+    helix
+    zed-editor
     nixd
     nil
-    #tor-browser
-    #qemu
-    #tiled
-    #gnome-tweaks
-    #papers
-    #showtime
-    #dconf-editor
-        
-    #rust based tools
-    
-    # only relatively cleanly programmed ones
-    fractal
-    mission-center
-    
-    zed-editor
-    helix
+    nixfmt
+    claude-code
+    opencode
+
+    # Media and graphics
+    blender
+    gimp
+    inkscape
+    shotcut
+    vlc
+    obs-studio
     oculante
-    lsd
-    rip2
-    #spacedrive
-    ouch
-    sudo-rs
-    zoxide
-    mission-center
-    starship
-    #appflowy
-    #warp-terminal
+    vulkan-tools
+
+    # Browsers and communication
+    chromium
+    discord-canary
+    element-desktop
+    fractal
+
+    # Games
     airshipper
-    kondo
-    fd
-    systeroid
+
+    # System monitoring
+    mission-center
   ];
 
-  # This value determines the NixOS release from which the default
-  # settings for stateful data, like file locations and database versions
-  # on your system were taken. It‘s perfectly fine and recommended to leavecatenate(variables, "bootdev", bootdev)
-  # this value at the release version of the first install of this system.
-  # Before changing this value read the documentation for this option
-  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "25.11"; # Did you read the comment?
+  # ------------------------------------------------------------------
+  # State
+  # ------------------------------------------------------------------
 
+  system.stateVersion = "25.11";
+
+  # ------------------------------------------------------------------
+  # 6. Disabled / alternative options (kept for reference)
+  # ------------------------------------------------------------------
+
+  # Disable the swap file above:
+  # swapDevices = lib.mkForce [ ];
+
+  # GNOME instead of COSMIC:
+  # services.xserver = {
+  #   enable = true;
+  #   displayManager.gdm.enable = true;
+  #   desktopManager.gnome = {
+  #     enable = true;
+  #     extraGSettingsOverridePackages = [ pkgs.mutter ];
+  #     extraGSettingsOverrides = ''
+  #       [org.gnome.mutter]
+  #       experimental-features=['variable-refresh-rate']
+  #     '';
+  #   };
+  #   xkb.layout = "de,de";
+  # };
+  #
+  # environment.gnome.excludePackages = with pkgs; [
+  #   atomix
+  #   cheese
+  #   epiphany
+  #   evince
+  #   geary
+  #   gedit
+  #   gnome-characters
+  #   gnome-music
+  #   gnome-photos
+  #   gnome-terminal
+  #   gnome-tour
+  #   hitori
+  #   iagno
+  #   tali
+  # ];
+
+  # VirtualBox instead of libvirt:
+  # virtualisation.virtualbox.host.enable = true;
+  # users.extraGroups.vboxusers.members = [ "cenk" ];
+
+  # ADB:
+  # programs.adb.enable = true;
+
+  # Packages not currently installed:
+  # yarn, mpv, prismlauncher, ffmpeg, jdk, rkdeveloptool, tor-browser, qemu,
+  # tiled, gnome-tweaks, papers, showtime, dconf-editor, spacedrive,
+  # appflowy, warp-terminal
 }
